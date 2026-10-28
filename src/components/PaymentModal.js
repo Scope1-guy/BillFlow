@@ -24,6 +24,7 @@ export default function PaymentModal({ invoice, balance, onClose }) {
     note: "",
   });
   const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
 
   // Updates ONE field and keeps the others: { ...form, [name]: value }
   function handleChange(event) {
@@ -47,19 +48,24 @@ export default function PaymentModal({ invoice, balance, onClose }) {
     return newErrors;
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
+    if (saving) return; // stops a double click from recording the payment twice
     const newErrors = validate();
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
-    addPayment({
+    setSaving(true);
+    const ok = await addPayment({
       invoiceId: invoice.id,
       amount: round2(form.amount),
       date: form.date,
       method: form.method,
       note: form.note.trim(),
     });
+    setSaving(false);
+    if (!ok) return; // an error message was already shown
+
     showToast(
       `Payment of ${formatCurrency(round2(form.amount))} recorded for ${
         invoice.number
@@ -132,8 +138,8 @@ export default function PaymentModal({ invoice, balance, onClose }) {
           <button type="button" className="btn btn-secondary" onClick={onClose}>
             Cancel
           </button>
-          <button type="submit" className="btn btn-primary">
-            Record payment
+          <button type="submit" className="btn btn-primary" disabled={saving}>
+            {saving ? "Saving..." : "Record payment"}
           </button>
         </div>
       </form>

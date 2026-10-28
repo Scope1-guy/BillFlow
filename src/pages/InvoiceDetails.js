@@ -42,20 +42,21 @@ export default function InvoiceDetails() {
   const isDraft = invoice.saved === 'draft'
 
   // A draft becomes "sent" - we replace the invoice with a copy that has saved: 'sent'
-  function markAsSent() {
-    saveInvoice({ ...invoice, saved: 'sent' })
-    showToast(`${invoice.number} marked as sent.`)
+  async function markAsSent() {
+    const savedId = await saveInvoice({ ...invoice, saved: 'sent' })
+    if (savedId) showToast(`${invoice.number} marked as sent.`)
   }
 
-  function handleDeleteInvoice() {
-    deleteInvoice(invoice.id)
+  async function handleDeleteInvoice() {
+    const ok = await deleteInvoice(invoice.id)
+    if (!ok) return
     showToast(`${invoice.number} was deleted.`)
     navigate('/invoices')
   }
 
-  function handleDeletePayment() {
-    deletePayment(paymentToDelete.id)
-    showToast('Payment removed.')
+  async function handleDeletePayment() {
+    const ok = await deletePayment(paymentToDelete.id)
+    if (ok) showToast('Payment removed.')
     setPaymentToDelete(null)
   }
 

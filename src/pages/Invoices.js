@@ -59,9 +59,9 @@ export default function Invoices() {
     navigate("/invoices", { replace: true });
   }
 
-  function confirmDelete() {
-    deleteInvoice(invoiceToDelete.id);
-    showToast(`${invoiceToDelete.number} was deleted.`);
+  async function confirmDelete() {
+    const ok = await deleteInvoice(invoiceToDelete.id);
+    if (ok) showToast(`${invoiceToDelete.number} was deleted.`);
     setInvoiceToDelete(null);
   }
 

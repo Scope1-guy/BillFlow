@@ -1,148 +1,396 @@
-import { createContext, useContext, useEffect, useState } from 'react'
-import { createSampleData } from '../data/sampleData'
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { supabase } from "../utils/supabaseClient";
+import { useAuth } from "./AuthContext";
 
-// ---------- Context API (kept deliberately simple) ----------
-// Clients, invoices and payments are needed by almost every page,
-// so we keep them in ONE place and share them with Context instead of
-// passing props through many layers ("prop drilling").
-//
-// NOTE: LocalStorage is only for this frontend demo. Anyone can read or edit it
-// in their browser, so it is NOT a secure replacement for a real backend.
+// All clients, invoices, receipts and payments live in your Supabase database.
+// Row Level Security makes sure each logged-in user can only read and write THEIR OWN rows.
 
-const STORAGE_KEY = 'billflow-data-v1'
+const DataContext = createContext(null);
 
-const DataContext = createContext(null)
-
-// Read saved data from LocalStorage. Fall back to the demo data if there is none,
-// or if the saved text is broken.
-function loadData() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      if (Array.isArray(parsed.clients) && Array.isArray(parsed.invoices) && Array.isArray(parsed.payments)) {
-        return parsed
-      }
-    }
-  } catch (error) {
-    console.warn('Could not read saved data, using demo data instead.', error)
-  }
-  return createSampleData()
+// The database uses snake_case names (client_id); our pages use camelCase (clientId).
+// These functions translate one database row into the object shape the pages expect.
+function toClient(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    phone: row.phone,
+    address: row.address,
+  };
 }
 
-function makeId(prefix) {
-  return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+function toItems(rows) {
+  return [...(rows || [])]
+    .sort((a, b) => a.position - b.position)
+    .map((item) => ({
+      id: item.id,
+      description: item.description,
+      quantity: Number(item.quantity),
+      unitPrice: Number(item.unit_price),
+    }));
+}
+
+function toInvoice(row) {
+  return {
+    id: row.id,
+    number: row.number,
+    clientId: row.client_id,
+    issueDate: row.issue_date,
+    dueDate: row.due_date,
+    items: toItems(row.invoice_items),
+    discount: Number(row.discount),
+    tax: Number(row.tax),
+    notes: row.notes,
+    terms: row.terms,
+    saved: row.status, // 'draft' or 'sent'
+  };
+}
+
+function toReceipt(row) {
+  return {
+    id: row.id,
+    number: row.number,
+    clientId: row.client_id, // can be null for walk-in customers
+    customerName: row.customer_name,
+    customerEmail: row.customer_email,
+    date: row.receipt_date,
+    method: row.payment_method,
+    items: toItems(row.receipt_items),
+    discount: Number(row.discount),
+    tax: Number(row.tax),
+    notes: row.notes,
+  };
+}
+
+function toPayment(row) {
+  return {
+    id: row.id,
+    invoiceId: row.invoice_id,
+    amount: Number(row.amount),
+    date: row.paid_on,
+    method: row.method,
+    note: row.note,
+  };
 }
 
 export function DataProvider({ children }) {
-  // useState with a function runs loadData only ONCE, on the first render
-  const [initialData] = useState(loadData)
-  const [clients, setClients] = useState(initialData.clients)
-  const [invoices, setInvoices] = useState(initialData.invoices)
-  const [payments, setPayments] = useState(initialData.payments)
-  const [toast, setToast] = useState(null)
+  const { user } = useAuth();
+  const userId = user ? user.id : null;
 
-  // useEffect: runs after render whenever the data changes -> save it to LocalStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ clients, invoices, payments }))
-    } catch (error) {
-      console.warn('Could not save data to LocalStorage.', error)
+  const [clients, setClients] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [receipts, setReceipts] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [loadedFor, setLoadedFor] = useState(null); // the user id whose data has finished loading
+  const [dataError, setDataError] = useState("");
+  const [toast, setToast] = useState(null);
+  const latestRequest = useRef(0);
+
+  // True from the moment someone logs in until their data has arrived
+  const dataLoading = Boolean(userId) && loadedFor !== userId;
+
+  // ----- Loading -----
+  async function loadAll() {
+    const requestId = ++latestRequest.current;
+    setDataError("");
+
+    // Four requests at the same time. Invoices and receipts come with their line items.
+    const [clientsResult, invoicesResult, paymentsResult, receiptsResult] =
+      await Promise.all([
+        supabase.from("clients").select("*").order("created_at"),
+        supabase
+          .from("invoices")
+          .select("*, invoice_items(*)")
+          .order("created_at"),
+        supabase.from("payments").select("*").order("created_at"),
+        supabase
+          .from("receipts")
+          .select("*, receipt_items(*)")
+          .order("created_at"),
+      ]);
+
+    // If a newer load started while we were waiting, ignore this older answer
+    if (requestId !== latestRequest.current) return;
+
+    const failure =
+      clientsResult.error ||
+      invoicesResult.error ||
+      paymentsResult.error ||
+      receiptsResult.error;
+    if (failure) {
+      console.error("Could not load data", failure);
+      setDataError(failure.message);
+    } else {
+      setClients(clientsResult.data.map(toClient));
+      setInvoices(invoicesResult.data.map(toInvoice));
+      setPayments(paymentsResult.data.map(toPayment));
+      setReceipts(receiptsResult.data.map(toReceipt));
     }
-  }, [clients, invoices, payments])
+    setLoadedFor(userId);
+  }
 
-  // useEffect: hide the toast message automatically after 3.5 seconds.
-  // The returned function cleans up the timer if the toast changes early.
+  // useEffect: load the data when someone logs in, and clear it when they log out
   useEffect(() => {
-    if (!toast) return undefined
-    const timer = setTimeout(() => setToast(null), 3500)
-    return () => clearTimeout(timer)
-  }, [toast])
+    if (!userId) {
+      latestRequest.current++;
+      setClients([]);
+      setInvoices([]);
+      setPayments([]);
+      setReceipts([]);
+      setLoadedFor(null);
+      return;
+    }
+    loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
-  function showToast(message, type = 'success') {
-    setToast({ message, type })
+  function reloadData() {
+    setLoadedFor(null);
+    loadAll();
+  }
+
+  // ----- Toast message -----
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  function showToast(message, type = "success") {
+    setToast({ message, type });
+  }
+
+  // Shows a clear error message. Every function below returns false (or null) after a failure.
+  function reportError(action, error) {
+    console.error(action, error);
+    const message =
+      error.code === "23505" ? "That number is already used." : error.message;
+    showToast(`${action}. ${message}`, "error");
+    return false;
   }
 
   // ----- Clients -----
-  // To update an array in state we never change it directly.
-  // We build a NEW array: [...old, newItem] to add, .map() to edit, .filter() to remove.
-  function addClient(client) {
-    setClients((previous) => [...previous, { ...client, id: makeId('c') }])
+  // Every change has TWO steps: 1) save in the database, 2) only if that worked, update the screen.
+  async function addClient(client) {
+    const { data, error } = await supabase
+      .from("clients")
+      .insert({
+        name: client.name,
+        email: client.email,
+        phone: client.phone,
+        address: client.address,
+      })
+      .select()
+      .single();
+    if (error) return reportError("Could not add the client", error);
+    setClients((previous) => [...previous, toClient(data)]);
+    return true;
   }
 
-  function updateClient(id, changes) {
-    setClients((previous) => previous.map((client) => (client.id === id ? { ...client, ...changes } : client)))
+  async function updateClient(id, changes) {
+    const { data, error } = await supabase
+      .from("clients")
+      .update(changes)
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) return reportError("Could not update the client", error);
+    setClients((previous) =>
+      previous.map((client) => (client.id === id ? toClient(data) : client))
+    );
+    return true;
   }
 
-  // A client with invoices cannot be deleted - otherwise those invoices would point at nothing.
-  function deleteClient(id) {
-    const hasInvoices = invoices.some((invoice) => invoice.clientId === id)
-    if (hasInvoices) {
-      return { ok: false, message: 'This client has invoices. Delete or reassign those invoices first.' }
+  // A client with invoices cannot be deleted (the database enforces this too)
+  async function deleteClient(id) {
+    if (invoices.some((invoice) => invoice.clientId === id)) {
+      return {
+        ok: false,
+        message:
+          "This client has invoices. Delete or reassign those invoices first.",
+      };
     }
-    setClients((previous) => previous.filter((client) => client.id !== id))
-    return { ok: true }
+    const { error } = await supabase.from("clients").delete().eq("id", id);
+    if (error) return { ok: false, message: error.message };
+    setClients((previous) => previous.filter((client) => client.id !== id));
+    // Receipts keep the customer name, but lose the link to the deleted client
+    setReceipts((previous) =>
+      previous.map((receipt) =>
+        receipt.clientId === id ? { ...receipt, clientId: null } : receipt
+      )
+    );
+    return { ok: true };
   }
 
   // ----- Invoices -----
-  // Saves a new invoice, or replaces an existing one when the id already exists.
-  function saveInvoice(invoice) {
-    const exists = invoices.some((item) => item.id === invoice.id)
-    if (exists) {
-      setInvoices((previous) => previous.map((item) => (item.id === invoice.id ? invoice : item)))
-      return invoice.id
+  // Saves a new invoice, or updates one that already has an id. Returns the invoice id, or null if it failed.
+  async function saveInvoice(invoice) {
+    const invoiceData = {
+      id: invoice.id || null,
+      client_id: invoice.clientId,
+      number: invoice.number,
+      issue_date: invoice.issueDate,
+      due_date: invoice.dueDate,
+      discount: invoice.discount,
+      tax: invoice.tax,
+      notes: invoice.notes,
+      terms: invoice.terms,
+      status: invoice.saved,
+    };
+    const items = invoice.items.map((item) => ({
+      description: item.description,
+      quantity: item.quantity,
+      unit_price: item.unitPrice,
+    }));
+
+    // The save_invoice database function saves the invoice and its items together
+    const { data: savedId, error } = await supabase.rpc("save_invoice", {
+      p_invoice: invoiceData,
+      p_items: items,
+    });
+    if (error) {
+      reportError("Could not save the invoice", error);
+      return null;
     }
-    const newInvoice = { ...invoice, id: makeId('i') }
-    setInvoices((previous) => [...previous, newInvoice])
-    return newInvoice.id
+
+    // Read the saved invoice back so the screen matches the database exactly
+    const { data: row, error: readError } = await supabase
+      .from("invoices")
+      .select("*, invoice_items(*)")
+      .eq("id", savedId)
+      .single();
+    if (readError) {
+      await loadAll();
+      return savedId;
+    }
+
+    const saved = toInvoice(row);
+    setInvoices((previous) =>
+      previous.some((item) => item.id === saved.id)
+        ? previous.map((item) => (item.id === saved.id ? saved : item))
+        : [...previous, saved]
+    );
+    return saved.id;
   }
 
-  // Deleting an invoice also deletes its payments so no orphan records are left behind
-  function deleteInvoice(id) {
-    setInvoices((previous) => previous.filter((invoice) => invoice.id !== id))
-    setPayments((previous) => previous.filter((payment) => payment.invoiceId !== id))
+  // Deleting an invoice also deletes its items and payments (the database does this for us)
+  async function deleteInvoice(id) {
+    const { error } = await supabase.from("invoices").delete().eq("id", id);
+    if (error) return reportError("Could not delete the invoice", error);
+    setInvoices((previous) => previous.filter((invoice) => invoice.id !== id));
+    setPayments((previous) =>
+      previous.filter((payment) => payment.invoiceId !== id)
+    );
+    return true;
+  }
+
+  // ----- Receipts -----
+  // Receipts are created once and never edited. Returns the receipt id, or null if saving failed.
+  async function saveReceipt(receipt) {
+    const receiptData = {
+      client_id: receipt.clientId || null,
+      customer_name: receipt.customerName,
+      customer_email: receipt.customerEmail,
+      number: receipt.number,
+      receipt_date: receipt.date,
+      payment_method: receipt.method,
+      discount: receipt.discount,
+      tax: receipt.tax,
+      notes: receipt.notes,
+    };
+    const items = receipt.items.map((item) => ({
+      description: item.description,
+      quantity: item.quantity,
+      unit_price: item.unitPrice,
+    }));
+
+    const { data: savedId, error } = await supabase.rpc("save_receipt", {
+      p_receipt: receiptData,
+      p_items: items,
+    });
+    if (error) {
+      reportError("Could not save the receipt", error);
+      return null;
+    }
+
+    const { data: row, error: readError } = await supabase
+      .from("receipts")
+      .select("*, receipt_items(*)")
+      .eq("id", savedId)
+      .single();
+    if (readError) {
+      await loadAll();
+      return savedId;
+    }
+
+    const saved = toReceipt(row);
+    setReceipts((previous) => [...previous, saved]);
+    return saved.id;
+  }
+
+  async function deleteReceipt(id) {
+    const { error } = await supabase.from("receipts").delete().eq("id", id);
+    if (error) return reportError("Could not delete the receipt", error);
+    setReceipts((previous) => previous.filter((receipt) => receipt.id !== id));
+    return true;
   }
 
   // ----- Payments -----
-  function addPayment(payment) {
-    setPayments((previous) => [...previous, { ...payment, id: makeId('p') }])
+  async function addPayment(payment) {
+    const { data, error } = await supabase
+      .from("payments")
+      .insert({
+        invoice_id: payment.invoiceId,
+        amount: payment.amount,
+        paid_on: payment.date,
+        method: payment.method,
+        note: payment.note,
+      })
+      .select()
+      .single();
+    if (error) return reportError("Could not record the payment", error);
+    setPayments((previous) => [...previous, toPayment(data)]);
+    return true;
   }
 
-  function deletePayment(id) {
-    setPayments((previous) => previous.filter((payment) => payment.id !== id))
+  async function deletePayment(id) {
+    const { error } = await supabase.from("payments").delete().eq("id", id);
+    if (error) return reportError("Could not remove the payment", error);
+    setPayments((previous) => previous.filter((payment) => payment.id !== id));
+    return true;
   }
 
   // ----- Helpers used by several pages -----
   function getClient(id) {
-    return clients.find((client) => client.id === id)
+    return clients.find((client) => client.id === id);
   }
 
   // Finds the highest INV-### number and adds one
   function getNextInvoiceNumber() {
     const highest = invoices.reduce((max, invoice) => {
-      const match = /^INV-(\d+)$/.exec(invoice.number)
-      return match ? Math.max(max, Number(match[1])) : max
-    }, 0)
-    return `INV-${String(highest + 1).padStart(3, '0')}`
+      const match = /^INV-(\d+)$/.exec(invoice.number);
+      return match ? Math.max(max, Number(match[1])) : max;
+    }, 0);
+    return `INV-${String(highest + 1).padStart(3, "0")}`;
   }
 
-  function resetDemoData() {
-    const sample = createSampleData()
-    setClients(sample.clients)
-    setInvoices(sample.invoices)
-    setPayments(sample.payments)
-  }
-
-  function clearAllData() {
-    setClients([])
-    setInvoices([])
-    setPayments([])
+  // Same idea for receipts: RCT-001, RCT-002 ...
+  function getNextReceiptNumber() {
+    const highest = receipts.reduce((max, receipt) => {
+      const match = /^RCT-(\d+)$/.exec(receipt.number);
+      return match ? Math.max(max, Number(match[1])) : max;
+    }, 0);
+    return `RCT-${String(highest + 1).padStart(3, "0")}`;
   }
 
   const value = {
     clients,
     invoices,
+    receipts,
     payments,
+    dataLoading,
+    dataError,
+    reloadData,
     toast,
     showToast,
     dismissToast: () => setToast(null),
@@ -151,18 +399,19 @@ export function DataProvider({ children }) {
     deleteClient,
     saveInvoice,
     deleteInvoice,
+    saveReceipt,
+    deleteReceipt,
     addPayment,
     deletePayment,
     getClient,
     getNextInvoiceNumber,
-    resetDemoData,
-    clearAllData,
-  }
+    getNextReceiptNumber,
+  };
 
-  return <DataContext.Provider value={value}>{children}</DataContext.Provider>
+  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 }
 
 // Any component can call useData() to read the shared data and functions
 export function useData() {
-  return useContext(DataContext)
+  return useContext(DataContext);
 }

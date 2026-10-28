@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useData } from "../context/DataContext";
 import { useCurrency } from "../context/CurrencyContext";
-import ConfirmDialog from "../components/ConfirmDialog";
 import Field from "../components/Field";
 import Icon from "../components/Icon";
 import { CURRENCIES } from "../utils/exchangeRates";
@@ -21,14 +20,7 @@ function formatDateTime(timestamp) {
 }
 
 export default function Settings() {
-  const {
-    resetDemoData,
-    clearAllData,
-    showToast,
-    clients,
-    invoices,
-    payments,
-  } = useData();
+  const { showToast } = useData();
   const {
     currency,
     preferredCurrency,
@@ -43,26 +35,12 @@ export default function Settings() {
     convert,
   } = useCurrency();
 
-  // Which confirmation is open: null, 'reset' or 'clear'
-  const [dialog, setDialog] = useState(null);
-
   // State for the small converter tool (the amount is kept as text because it comes from an input)
   const [converter, setConverter] = useState({
     amount: "100",
     from: "USD",
     to: "NGN",
   });
-
-  function handleConfirm() {
-    if (dialog === "reset") {
-      resetDemoData();
-      showToast("Demo data restored.");
-    } else {
-      clearAllData();
-      showToast("All data cleared.");
-    }
-    setDialog(null);
-  }
 
   function handleCurrencyChange(event) {
     const code = event.target.value;
@@ -267,52 +245,7 @@ export default function Settings() {
             </p>
           )}
         </section>
-
-        <section className="card settings-card">
-          <h2 className="card-title">Your data</h2>
-          <p>
-            BillFlow currently stores everything in your browser's{" "}
-            <strong>LocalStorage</strong>: {clients.length} clients,{" "}
-            {invoices.length} invoices and {payments.length} payments.
-          </p>
-          <p className="muted">
-            LocalStorage is only suitable for this frontend demo. Anyone using
-            this browser can read or change it, it is not shared between
-            devices, and it is not a secure replacement for a real backend.
-          </p>
-
-          <div className="settings-actions">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setDialog("reset")}
-            >
-              <Icon name="refresh" size={16} /> Restore demo data
-            </button>
-            <button
-              type="button"
-              className="btn btn-danger-outline"
-              onClick={() => setDialog("clear")}
-            >
-              <Icon name="trash" size={16} /> Clear all data
-            </button>
-          </div>
-        </section>
       </div>
-
-      {dialog && (
-        <ConfirmDialog
-          title={dialog === "reset" ? "Restore demo data?" : "Clear all data?"}
-          confirmLabel={dialog === "reset" ? "Restore" : "Clear everything"}
-          message={
-            dialog === "reset"
-              ? "Your current clients, invoices and payments will be replaced by the original demo records."
-              : "All clients, invoices and payments will be permanently deleted from this browser."
-          }
-          onConfirm={handleConfirm}
-          onCancel={() => setDialog(null)}
-        />
-      )}
     </>
   );
 }

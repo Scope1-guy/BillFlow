@@ -175,6 +175,9 @@
   /* font-family: "Lobster Two", sans-serif; */
   /* font-family: "Honk", sans-serif; */
 }
+.page-header div {
+  gap: 20px;
+}
 .header-actions {
   display: flex;
   flex-wrap: wrap;

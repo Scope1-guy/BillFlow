@@ -41,7 +41,7 @@ function getMonthlyRevenue(payments) {
 }
 
 export default function Dashboard() {
-  const { invoices, payments, clients, getClient } = useData();
+  const { invoices, receipts, payments, clients, getClient } = useData();
   const { formatMoney, formatCompact } = useCurrency();
 
   // ----- Everything below is CALCULATED from the real records, never hardcoded -----
@@ -55,8 +55,12 @@ export default function Dashboard() {
   const totalInvoiced = round2(
     sentInvoices.reduce((sum, invoice) => sum + calcTotals(invoice).total, 0)
   );
+  const receiptsTotal = round2(
+    receipts.reduce((sum, receipt) => sum + calcTotals(receipt).total, 0)
+  );
   const totalReceived = round2(
-    payments.reduce((sum, payment) => sum + Number(payment.amount), 0)
+    payments.reduce((sum, payment) => sum + Number(payment.amount), 0) +
+      receiptsTotal
   );
   const outstanding = round2(
     sentInvoices.reduce(
@@ -100,15 +104,27 @@ export default function Dashboard() {
   const recentPayments = [...payments]
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 5);
-  const monthlyRevenue = getMonthlyRevenue(payments);
+  // The chart counts invoice payments AND receipts
+  const monthlyRevenue = getMonthlyRevenue([
+    ...payments,
+    ...receipts.map((receipt) => ({
+      date: receipt.date,
+      amount: calcTotals(receipt).total,
+    })),
+  ]);
 
   return (
     <>
       <div className="page-header">
         <h1>Dashboard</h1>
-        <Link to="/invoices/new" className="btn btn-primary">
-          <Icon name="plusCircle" size={18} /> Create Invoice
-        </Link>
+        <div>
+          <Link to="/invoices/new" className="btn btn-primary">
+            <Icon name="plusCircle" size={18} /> Create Invoice
+          </Link>
+          <Link to="/receipts/new" className="btn btn-primary">
+            <Icon name="plusCircle" size={18} /> Create Receipt
+          </Link>
+        </div>
       </div>
 
       <section className="stat-grid" aria-label="Summary">
@@ -122,7 +138,7 @@ export default function Dashboard() {
         <StatCard
           title="Payments Received"
           value={formatMoney(totalReceived)}
-          note="All recorded payments"
+          note="Invoice payments and receipts"
           icon="wallet"
           tone="green"
         />
