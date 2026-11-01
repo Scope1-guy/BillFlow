@@ -6,14 +6,15 @@ import StatusBadge from '../components/StatusBadge'
 import ConfirmDialog from '../components/ConfirmDialog'
 import PaymentModal from '../components/PaymentModal'
 import EmptyState from '../components/EmptyState'
+import IssuerBlock from '../components/IssuerBlock'
 import Icon from '../components/Icon'
-import { calcLineTotal, calcTotals, formatDate, getAmountPaid, getBalance, getInvoiceStatus } from '../utils/calc'
+import { calcLineTotal, calcTotals, formatCurrency, formatDate, getAmountPaid, getBalance, getInvoiceStatus } from '../utils/calc'
 
 export default function InvoiceDetails() {
   const { invoiceId } = useParams()
   const navigate = useNavigate()
-  const { invoices, payments, getClient, saveInvoice, deleteInvoice, deletePayment, showToast } = useData()
-  const {formatMoney} = useCurrency();
+  const { invoices, payments, businessProfile, getClient, saveInvoice, deleteInvoice, deletePayment, showToast } = useData()
+  const { currency, formatMoney } = useCurrency()
 
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [confirmDeleteInvoice, setConfirmDeleteInvoice] = useState(false)
@@ -40,8 +41,9 @@ export default function InvoiceDetails() {
     .sort((a, b) => b.date.localeCompare(a.date))
 
   const isDraft = invoice.saved === 'draft'
+  const showPaymentDetails = businessProfile && businessProfile.paymentDetails && balance > 0 && !isDraft
 
-  // A draft becomes "sent" - we replace the invoice with a copy that has saved: 'sent'
+  // A draft becomes "sent"
   async function markAsSent() {
     const savedId = await saveInvoice({ ...invoice, saved: 'sent' })
     if (savedId) showToast(`${invoice.number} marked as sent.`)
@@ -62,12 +64,14 @@ export default function InvoiceDetails() {
 
   return (
     <>
-      <div className="page-header">
+      {/* Everything marked "no-print" is hidden when printing */}
+      <div className="page-header no-print">
         <div>
           <Link to="/invoices" className="back-link"><Icon name="arrowLeft" size={16} /> Back to invoices</Link>
           <h1 className="title-with-badge">{invoice.number} <StatusBadge status={status} /></h1>
         </div>
         <div className="header-actions">
+          <button type="button" className="btn btn-secondary" onClick={() => window.print()}>Print / Save as PDF</button>
           {isDraft && <button type="button" className="btn btn-secondary" onClick={markAsSent}>Mark as sent</button>}
           <Link to={`/invoices/${invoice.id}/edit`} className="btn btn-secondary"><Icon name="edit" size={16} /> Edit</Link>
           <button type="button" className="btn btn-primary" onClick={() => setShowPaymentModal(true)} disabled={isDraft || balance <= 0}
@@ -83,26 +87,33 @@ export default function InvoiceDetails() {
       <div className="details-layout">
         <div className="details-main">
           <section className="card">
-            <div className="detail-meta">
+            <div className="receipt-head">
               <div>
-                <h2 className="meta-title">Billed to</h2>
+                <h2 className="receipt-title">INVOICE</h2>
+                <p className="muted">{invoice.number}</p>
+              </div>
+              <StatusBadge status={status} />
+            </div>
+
+            <div className="detail-meta">
+              <IssuerBlock title="From" />
+              <div>
+                <h3 className="meta-title">Billed to</h3>
                 {client ? (
                   <address>
                     <strong>{client.name}</strong><br />
                     {client.email}<br />
                     {client.phone && <>{client.phone}<br /></>}
-                    {client.address}
+                    <span className="pre-line">{client.address}</span>
                   </address>
                 ) : <p className="muted">Client no longer exists.</p>}
               </div>
-              <div>
-                <h2 className="meta-title">Dates</h2>
-                <dl className="meta-list">
-                  <div><dt>Issued</dt><dd>{formatDate(invoice.issueDate)}</dd></div>
-                  <div><dt>Due</dt><dd>{formatDate(invoice.dueDate)}</dd></div>
-                </dl>
-              </div>
             </div>
+
+            <dl className="meta-list receipt-facts">
+              <div><dt>Issued</dt><dd>{formatDate(invoice.issueDate)}</dd></div>
+              <div><dt>Due</dt><dd>{formatDate(invoice.dueDate)}</dd></div>
+            </dl>
 
             <div className="table-wrap">
               <table className="data-table items-table">
@@ -114,8 +125,8 @@ export default function InvoiceDetails() {
                     <tr key={item.id}>
                       <td data-label="Description">{item.description}</td>
                       <td data-label="Qty" className="num">{item.quantity}</td>
-                      <td data-label="Unit price" className="num">{formatMoney(item.unitPrice)}</td>
-                      <td data-label="Amount" className="num">{formatMoney(calcLineTotal(item))}</td>
+                      <td data-label="Unit price" className="num">{formatCurrency(item.unitPrice)}</td>
+                      <td data-label="Amount" className="num">{formatCurrency(calcLineTotal(item))}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -123,24 +134,33 @@ export default function InvoiceDetails() {
             </div>
 
             <dl className="totals totals-right">
-              <div><dt>Subtotal</dt><dd>{formatMoney(totals.subtotal)}</dd></div>
-              {invoice.discount > 0 && <div><dt>Discount ({invoice.discount}%)</dt><dd>-{formatMoney(totals.discountAmount)}</dd></div>}
-              {invoice.tax > 0 && <div><dt>Tax ({invoice.tax}%)</dt><dd>{formatMoney(totals.taxAmount)}</dd></div>}
-              <div className="grand"><dt>Total</dt><dd>{formatMoney(totals.total)}</dd></div>
-              <div><dt>Amount paid</dt><dd className="positive">{formatMoney(amountPaid)}</dd></div>
-              <div className="grand"><dt>Balance due</dt><dd>{formatMoney(balance)}</dd></div>
+              <div><dt>Subtotal</dt><dd>{formatCurrency(totals.subtotal)}</dd></div>
+              {invoice.discount > 0 && <div><dt>Discount ({invoice.discount}%)</dt><dd>-{formatCurrency(totals.discountAmount)}</dd></div>}
+              {invoice.tax > 0 && <div><dt>Tax ({invoice.tax}%)</dt><dd>{formatCurrency(totals.taxAmount)}</dd></div>}
+              <div className="grand"><dt>Total</dt><dd>{formatCurrency(totals.total)}</dd></div>
+              <div><dt>Amount paid</dt><dd className="positive">{formatCurrency(amountPaid)}</dd></div>
+              <div className="grand"><dt>Balance due</dt><dd>{formatCurrency(balance)}</dd></div>
             </dl>
-          </section>
 
-          {(invoice.notes || invoice.terms) && (
-            <section className="card">
-              {invoice.notes && (<><h2 className="meta-title">Notes</h2><p className="pre-line">{invoice.notes}</p></>)}
-              {invoice.terms && (<><h2 className="meta-title">Payment terms</h2><p className="pre-line">{invoice.terms}</p></>)}
-            </section>
-          )}
+            {showPaymentDetails && (
+              <>
+                <h3 className="meta-title">How to pay</h3>
+                <p className="pre-line">{businessProfile.paymentDetails}</p>
+              </>
+            )}
+
+            {invoice.notes && (<><h3 className="meta-title">Notes</h3><p className="pre-line">{invoice.notes}</p></>)}
+            {invoice.terms && (<><h3 className="meta-title">Payment terms</h3><p className="pre-line">{invoice.terms}</p></>)}
+
+            {currency !== 'USD' && (
+              <p className="field-hint no-print">
+                Amounts are shown in USD, the currency this invoice was saved in. The balance is about {formatMoney(balance)} in {currency} at today's rate.
+              </p>
+            )}
+          </section>
         </div>
 
-        <aside className="details-side">
+        <aside className="details-side no-print">
           <section className="card">
             <h2 className="card-title">Payment history</h2>
             {invoicePayments.length === 0 ? (
@@ -150,11 +170,11 @@ export default function InvoiceDetails() {
                 {invoicePayments.map((payment) => (
                   <li key={payment.id}>
                     <div>
-                      <strong className="positive">{formatMoney(payment.amount)}</strong>
+                      <strong className="positive">{formatCurrency(payment.amount)}</strong>
                       <span className="muted">{formatDate(payment.date)} - {payment.method}</span>
                       {payment.note && <span className="muted">{payment.note}</span>}
                     </div>
-                    <button type="button" className="icon-button icon-danger" onClick={() => setPaymentToDelete(payment)} aria-label={`Remove payment of ${formatMoney(payment.amount)}`}>
+                    <button type="button" className="icon-button icon-danger" onClick={() => setPaymentToDelete(payment)} aria-label={`Remove payment of ${formatCurrency(payment.amount)}`}>
                       <Icon name="trash" size={16} />
                     </button>
                   </li>
@@ -174,7 +194,7 @@ export default function InvoiceDetails() {
 
       {paymentToDelete && (
         <ConfirmDialog title="Remove payment?" confirmLabel="Remove"
-          message={`The ${formatMoney(paymentToDelete.amount)} payment from ${formatDate(paymentToDelete.date)} will be removed and the balance will go up.`}
+          message={`The ${formatCurrency(paymentToDelete.amount)} payment from ${formatDate(paymentToDelete.date)} will be removed and the balance will go up.`}
           onConfirm={handleDeletePayment} onCancel={() => setPaymentToDelete(null)} />
       )}
     </>

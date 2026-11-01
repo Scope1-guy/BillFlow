@@ -859,3 +859,21 @@
 .legal-card li {
   margin-bottom: 6px;
 }
+.settings-form {
+  display: grid;
+  gap: 14px;
+}
+.settings-form .field {
+  margin-bottom: 0;
+}
+
+@media print {
+  .details-layout {
+    display: block;
+  }
+  .badge,
+  .paid-stamp {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

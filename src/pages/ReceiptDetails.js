@@ -1,19 +1,20 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useData } from '../context/DataContext'
-import { useAuth } from '../context/AuthContext'
+// import { useAuth } from '../context/AuthContext'
+import IssuerBlock from '../components/IssuerBlock'
 import { useCurrency } from '../context/CurrencyContext'
 import ConfirmDialog from '../components/ConfirmDialog'
 import EmptyState from '../components/EmptyState'
 import Icon from '../components/Icon'
 import { calcLineTotal, calcTotals, formatCurrency, formatDate } from '../utils/calc'
-import { getDisplayName } from '../utils/displayName'
+// import { getDisplayName } from '../utils/displayName'
 
 export default function ReceiptDetails() {
   const { receiptId } = useParams()
   const navigate = useNavigate()
   const { receipts, deleteReceipt, showToast } = useData()
-  const { user } = useAuth()
+  // const { user } = useAuth()
   const { currency, formatMoney } = useCurrency()
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -70,13 +71,7 @@ export default function ReceiptDetails() {
               {receipt.customerEmail && <><br />{receipt.customerEmail}</>}
             </address>
           </div>
-          <div>
-            <h3 className="meta-title">Issued by</h3>
-            <address>
-              <strong>{getDisplayName(user)}</strong><br />
-              {user.email}
-            </address>
-          </div>
+          <IssuerBlock title="Issued by"/>
         </div>
 
         <dl className="meta-list receipt-facts">

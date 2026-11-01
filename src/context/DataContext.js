@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { supabase } from "../utils/supabaseClient";
 import { useAuth } from "./AuthContext";
 
-// All clients, invoices, receipts and payments live in your Supabase database.
+// All data lives in your Supabase database.
 // Row Level Security makes sure each logged-in user can only read and write THEIR OWN rows.
 
 const DataContext = createContext(null);
@@ -73,6 +73,17 @@ function toPayment(row) {
   };
 }
 
+function toBusinessProfile(row) {
+  return {
+    name: row.business_name,
+    email: row.email,
+    phone: row.phone,
+    address: row.address,
+    taxId: row.tax_id,
+    paymentDetails: row.payment_details,
+  };
+}
+
 export function DataProvider({ children }) {
   const { user } = useAuth();
   const userId = user ? user.id : null;
@@ -81,6 +92,7 @@ export function DataProvider({ children }) {
   const [invoices, setInvoices] = useState([]);
   const [receipts, setReceipts] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [businessProfile, setBusinessProfile] = useState(null); // null until the person saves one
   const [loadedFor, setLoadedFor] = useState(null); // the user id whose data has finished loading
   const [dataError, setDataError] = useState("");
   const [toast, setToast] = useState(null);
@@ -94,20 +106,26 @@ export function DataProvider({ children }) {
     const requestId = ++latestRequest.current;
     setDataError("");
 
-    // Four requests at the same time. Invoices and receipts come with their line items.
-    const [clientsResult, invoicesResult, paymentsResult, receiptsResult] =
-      await Promise.all([
-        supabase.from("clients").select("*").order("created_at"),
-        supabase
-          .from("invoices")
-          .select("*, invoice_items(*)")
-          .order("created_at"),
-        supabase.from("payments").select("*").order("created_at"),
-        supabase
-          .from("receipts")
-          .select("*, receipt_items(*)")
-          .order("created_at"),
-      ]);
+    // Five requests at the same time. Invoices and receipts come with their line items.
+    const [
+      clientsResult,
+      invoicesResult,
+      paymentsResult,
+      receiptsResult,
+      profileResult,
+    ] = await Promise.all([
+      supabase.from("clients").select("*").order("created_at"),
+      supabase
+        .from("invoices")
+        .select("*, invoice_items(*)")
+        .order("created_at"),
+      supabase.from("payments").select("*").order("created_at"),
+      supabase
+        .from("receipts")
+        .select("*, receipt_items(*)")
+        .order("created_at"),
+      supabase.from("business_profiles").select("*").maybeSingle(), // 0 or 1 row: your own
+    ]);
 
     // If a newer load started while we were waiting, ignore this older answer
     if (requestId !== latestRequest.current) return;
@@ -116,7 +134,8 @@ export function DataProvider({ children }) {
       clientsResult.error ||
       invoicesResult.error ||
       paymentsResult.error ||
-      receiptsResult.error;
+      receiptsResult.error ||
+      profileResult.error;
     if (failure) {
       console.error("Could not load data", failure);
       setDataError(failure.message);
@@ -125,6 +144,9 @@ export function DataProvider({ children }) {
       setInvoices(invoicesResult.data.map(toInvoice));
       setPayments(paymentsResult.data.map(toPayment));
       setReceipts(receiptsResult.data.map(toReceipt));
+      setBusinessProfile(
+        profileResult.data ? toBusinessProfile(profileResult.data) : null
+      );
     }
     setLoadedFor(userId);
   }
@@ -137,6 +159,7 @@ export function DataProvider({ children }) {
       setInvoices([]);
       setPayments([]);
       setReceipts([]);
+      setBusinessProfile(null);
       setLoadedFor(null);
       return;
     }
@@ -167,6 +190,32 @@ export function DataProvider({ children }) {
       error.code === "23505" ? "That number is already used." : error.message;
     showToast(`${action}. ${message}`, "error");
     return false;
+  }
+
+  // ----- Business profile -----
+  // "upsert" means: create the row the first time, update it every time after
+  async function saveBusinessProfile(profile) {
+    const { data, error } = await supabase
+      .from("business_profiles")
+      .upsert(
+        {
+          user_id: userId,
+          business_name: profile.name,
+          email: profile.email,
+          phone: profile.phone,
+          address: profile.address,
+          tax_id: profile.taxId,
+          payment_details: profile.paymentDetails,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      )
+      .select()
+      .single();
+    if (error)
+      return reportError("Could not save your business details", error);
+    setBusinessProfile(toBusinessProfile(data));
+    return true;
   }
 
   // ----- Clients -----
@@ -388,12 +437,14 @@ export function DataProvider({ children }) {
     invoices,
     receipts,
     payments,
+    businessProfile,
     dataLoading,
     dataError,
     reloadData,
     toast,
     showToast,
     dismissToast: () => setToast(null),
+    saveBusinessProfile,
     addClient,
     updateClient,
     deleteClient,
