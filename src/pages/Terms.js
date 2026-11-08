@@ -8,7 +8,7 @@ export default function Terms() {
           Back to BillFlow
         </Link>
         <h1>Terms of Service</h1>
-        <p className="muted">Last updated: [DATE]</p>
+        <p className="muted">Last updated: Today</p>
 
         <h2>Using BillFlow</h2>
         <p>
@@ -73,10 +73,10 @@ export default function Terms() {
         </p>
 
         <h2>Governing law</h2>
-        <p>These terms are governed by the laws of [YOUR COUNTRY OR STATE].</p>
+        <p>These terms are governed by the laws of Nigeria.</p>
 
         <h2>Contact</h2>
-        <p>Questions? Email [YOUR EMAIL].</p>
+        <p>Questions? Email the.guyyy1203@gmail.com.</p>
       </div>
     </div>
   );

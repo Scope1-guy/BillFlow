@@ -8,7 +8,7 @@ export default function Privacy() {
           Back to BillFlow
         </Link>
         <h1>Privacy Policy</h1>
-        <p className="muted">Last updated: [DATE]</p>
+        <p className="muted">Last updated: Today</p>
 
         <h2>What BillFlow is</h2>
         <p>
@@ -76,7 +76,7 @@ export default function Privacy() {
         <h2>Keeping and deleting your data</h2>
         <p>
           We keep your data while your account exists. To delete your account
-          and data, or to ask for a copy of it, email [YOUR EMAIL].
+          and data, or to ask for a copy of it, email the.guyyy1203@gmail.com.
         </p>
 
         <h2>Security</h2>
@@ -91,7 +91,7 @@ export default function Privacy() {
         </p>
 
         <h2>Contact</h2>
-        <p>Questions? Email [YOUR EMAIL].</p>
+        <p>Questions? Email the.guyyy1203@gmail.com.</p>
       </div>
     </div>
   );
