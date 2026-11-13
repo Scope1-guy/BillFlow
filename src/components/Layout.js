@@ -5,6 +5,7 @@ import { getDisplayName } from "../utils/displayName";
 import Icon from "./Icon";
 import Toast from "./Toast";
 import { useData } from "../context/DataContext";
+import InstallButton from "./InstallButton";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: "dashboard", end: true },
@@ -120,6 +121,7 @@ export default function Layout() {
               <small>{user.email}</small>
             </span>
           </div>
+          <InstallButton />
           <button
             type="button"
             className="btn btn-secondary btn-block sign-out"

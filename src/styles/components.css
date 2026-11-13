@@ -877,3 +877,6 @@
     print-color-adjust: exact;
   }
 }
+.install-button {
+  margin-top: 12px;
+}
