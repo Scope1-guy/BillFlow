@@ -6,6 +6,9 @@ import Icon from "./Icon";
 import Toast from "./Toast";
 import { useData } from "../context/DataContext";
 import InstallButton from "./InstallButton";
+import NotificationBell from "./NotificationBell";
+import { useCurrency } from "../context/CurrencyContext";
+import { getReminders, maybeShowDailyReminder } from "../utils/reminders";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: "dashboard", end: true },
@@ -45,7 +48,9 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { dataLoading, dataError, reloadData } = useData();
+  const { invoices, payments, getClient, dataLoading, dataError, reloadData } =
+    useData();
+  const { formatMoney } = useCurrency();
   const displayName = getDisplayName(user);
 
   // useEffect: close the mobile drawer whenever the page (URL) changes
@@ -63,6 +68,15 @@ export default function Layout() {
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
   }, [menuOpen]);
+  // useEffect: once the data has loaded, show a reminder notification (at most once a day)
+  useEffect(() => {
+    if (dataLoading || dataError) return;
+    maybeShowDailyReminder(
+      getReminders(invoices, payments, getClient),
+      formatMoney
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataLoading]);
 
   function handleSearch(event) {
     event.preventDefault();
@@ -157,6 +171,7 @@ export default function Layout() {
               aria-label="Quick invoice search"
             />
           </form>
+          <NotificationBell />
         </header>
 
         <main className="page">

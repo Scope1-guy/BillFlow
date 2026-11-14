@@ -15,6 +15,7 @@ import {
   getInvoiceStatus,
   round2,
 } from "../utils/calc";
+import ReminderBanner from "../components/ReminderBanner";
 
 // Builds the last 6 months of "payments received" for the chart
 function getMonthlyRevenue(payments) {
@@ -126,6 +127,7 @@ export default function Dashboard() {
           </Link>
         </div>
       </div>
+      <ReminderBanner />
 
       <section className="stat-grid" aria-label="Summary">
         <StatCard

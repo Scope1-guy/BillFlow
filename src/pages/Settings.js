@@ -6,6 +6,7 @@ import Icon from "../components/Icon";
 import { CURRENCIES } from "../utils/exchangeRates";
 import { formatCurrency } from "../utils/calc";
 import BusinessProfileForm from "../components/BusinessProfileForm";
+import ReminderSettings from "../components/ReminderSettings";
 
 // A readable label like "NGN - Nigerian Naira"
 function currencyLabel(code) {
@@ -74,6 +75,7 @@ export default function Settings() {
 
       <div className="settings-page">
         <BusinessProfileForm />
+        <ReminderSettings />
         <section className="card settings-card">
           <h2 className="card-title">Display currency</h2>
           <p className="muted">
