@@ -3,8 +3,8 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
 // Change these two lines when you rename the app
-const APP_NAME = "BillFlow";
-const APP_SHORT_NAME = "BillFlow"; // shown under the icon on the phone, keep it short
+const APP_NAME = "DueSora";
+const APP_SHORT_NAME = "DueSora"; // shown under the icon on the phone, keep it short
 
 // Vite only treats .jsx files as JSX by default.
 // Because this project keeps components in plain .js files,
@@ -17,7 +17,7 @@ export default defineConfig({
       includeAssets: [
         "favicon.ico",
         "apple-touch-icon-180x180.png",
-        "logo.svg",
+        "logo.png",
       ],
       manifest: {
         name: `${APP_NAME} - invoices and receipts`,

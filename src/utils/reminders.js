@@ -8,7 +8,7 @@ import {
 
 // An invoice counts as "due soon" when it falls due within this many days
 export const DUE_SOON_DAYS = 3;
-const LAST_SHOWN_KEY = "billflow-reminder-last-shown";
+const LAST_SHOWN_KEY = "DueSora-reminder-last-shown";
 
 // Whole days from one "YYYY-MM-DD" date to another (positive when `to` is later)
 function daysBetween(from, to) {
@@ -124,7 +124,7 @@ export async function maybeShowDailyReminder(reminders, formatMoney) {
     );
   }
   await showReminderNotification(
-    "BillFlow: payments to collect",
+    "DueSora: payments to collect",
     lines.join("\n")
   );
 }

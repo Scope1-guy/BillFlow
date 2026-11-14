@@ -5,14 +5,14 @@ export default function Privacy() {
     <div className="legal-page">
       <div className="card legal-card">
         <Link to="/" className="back-link">
-          Back to BillFlow
+          Back to DueSora
         </Link>
         <h1>Privacy Policy</h1>
         <p className="muted">Last updated: Today</p>
 
-        <h2>What BillFlow is</h2>
+        <h2>What DueSora is</h2>
         <p>
-          BillFlow is an online tool for creating invoices and receipts and
+          DueSora is an online tool for creating invoices and receipts and
           tracking payments.
         </p>
 
@@ -36,7 +36,7 @@ export default function Privacy() {
 
         <h2>How we use it</h2>
         <p>
-          We use your information only to run BillFlow: to log you in, to save
+          We use your information only to run DueSora: to log you in, to save
           and show your records, and to send account emails such as password
           resets. We do not sell your information.
         </p>

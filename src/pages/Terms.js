@@ -5,16 +5,16 @@ export default function Terms() {
     <div className="legal-page">
       <div className="card legal-card">
         <Link to="/" className="back-link">
-          Back to BillFlow
+          Back to DueSora
         </Link>
         <h1>Terms of Service</h1>
         <p className="muted">Last updated: Today</p>
 
-        <h2>Using BillFlow</h2>
+        <h2>Using DueSora</h2>
         <p>
-          BillFlow helps you create invoices and receipts and track payments. By
+          DueSora helps you create invoices and receipts and track payments. By
           creating an account you agree to these terms. You must be old enough
-          to enter a contract where you live and use BillFlow lawfully.
+          to enter a contract where you live and use DueSora lawfully.
         </p>
 
         <h2>Your account</h2>
@@ -34,10 +34,10 @@ export default function Terms() {
             and for meeting your own tax, accounting and legal duties.
           </li>
           <li>
-            BillFlow does not process payments. Recording a payment only records
+            DueSora does not process payments. Recording a payment only records
             it, and no money moves.
           </li>
-          <li>BillFlow is not accounting, tax or legal advice.</li>
+          <li>DueSora is not accounting, tax or legal advice.</li>
         </ul>
 
         <h2>Currency display</h2>
@@ -49,26 +49,26 @@ export default function Terms() {
 
         <h2>Acceptable use</h2>
         <p>
-          Do not use BillFlow for anything unlawful, to harm others, or to
-          attack or overload the service.
+          Do not use DueSora for anything unlawful, to harm others, or to attack
+          or overload the service.
         </p>
 
         <h2>Availability</h2>
         <p>
-          We work to keep BillFlow running, but it is provided "as is" without
+          We work to keep DueSora running, but it is provided "as is" without
           guarantees. It may be unavailable or change from time to time. Keep
           your own copies of important records.
         </p>
 
         <h2>Ending your account</h2>
         <p>
-          You can stop using BillFlow at any time and ask us to delete your
+          You can stop using DueSora at any time and ask us to delete your
           account. We may suspend accounts that break these terms.
         </p>
 
         <h2>Limit of liability</h2>
         <p>
-          To the extent the law allows, BillFlow is not liable for indirect
+          To the extent the law allows, DueSora is not liable for indirect
           losses or lost income arising from using the service.
         </p>
 

@@ -18,7 +18,7 @@ export default function ReminderSettings() {
 
   async function handleTest() {
     const shown = await showReminderNotification(
-      "BillFlow: test reminder",
+      "DueSora: test reminder",
       "This is how your payment reminders will look."
     );
     if (!shown) showToast("Could not show a test reminder.", "error");
@@ -28,14 +28,14 @@ export default function ReminderSettings() {
     <section className="card settings-card">
       <h2 className="card-title">Payment reminders</h2>
       <p className="muted">
-        When you open BillFlow, you get a reminder if someone is overdue or a
+        When you open DueSora, you get a reminder if someone is overdue or a
         payment is due within {DUE_SOON_DAYS} days. The bell icon at the top
         always shows the current list.
       </p>
 
       {permission === "unsupported" && (
         <p className="field-hint">
-          This browser can't show notifications. On an iPhone, add BillFlow to
+          This browser can't show notifications. On an iPhone, add DueSora to
           your Home Screen first and open it from there.
         </p>
       )}

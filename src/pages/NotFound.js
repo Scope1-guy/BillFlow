@@ -10,7 +10,7 @@ export default function NotFound() {
           The page you are looking for does not exist or has moved.
         </p>
         <Link to="/" className="btn btn-primary btn-block">
-          Go to BillFlow
+          Go to DueSora
         </Link>
       </div>
     </div>

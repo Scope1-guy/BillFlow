@@ -79,7 +79,7 @@ export default function Settings() {
         <section className="card settings-card">
           <h2 className="card-title">Display currency</h2>
           <p className="muted">
-            Choose the currency used to show amounts across BillFlow. Everything
+            Choose the currency used to show amounts across DueSora. Everything
             is saved in US dollars, so you can switch at any time without
             changing your records. Invoice and payment forms still take amounts
             in USD.

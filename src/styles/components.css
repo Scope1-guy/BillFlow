@@ -1176,3 +1176,18 @@
     text-align: right;
   }
 }
+.logo-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 20px;
+  object-fit: contain;
+}
+.auth-brand-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+}
+.auth-brand-logo img {
+  border-radius: 20px;
+}

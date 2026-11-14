@@ -12,7 +12,7 @@ import { formatCompactCurrency, formatCurrency } from "../utils/calc";
 // Every amount is STORED in US dollars. The display currency only changes how amounts are SHOWN:
 // shown = stored USD amount x rate.
 
-const SETTINGS_KEY = "billflow-settings-v1";
+const SETTINGS_KEY = "DueSora-settings-v1";
 
 const CurrencyContext = createContext(null);
 

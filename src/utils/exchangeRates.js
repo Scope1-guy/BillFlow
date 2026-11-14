@@ -3,7 +3,7 @@
 // never fetch more than once an hour (the service returns 429 if you ask too often).
 
 export const RATES_URL = "https://open.er-api.com/v6/latest/USD";
-const CACHE_KEY = "billflow-rates-v1";
+const CACHE_KEY = "DueSora-rates-v1";
 const ONE_HOUR = 60 * 60 * 1000;
 const ONE_DAY = 24 * ONE_HOUR;
 

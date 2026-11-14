@@ -1,4 +1,4 @@
-# BillFlow - Invoicing & Payments Tracker
+# DueSora - Invoicing & Payments Tracker
 
 A responsive invoicing dashboard for freelancers and small businesses, built as a React learning project.
 It runs entirely in the browser with demo data and **LocalStorage** (no backend).
@@ -38,7 +38,7 @@ Only `saved: 'draft' | 'sent'` is stored. The visible status is **calculated** i
 ## Project structure
 
 ```text
-billflow/
+DueSora/
 ├── index.html              Vite entry page (loads /src/main.js)
 ├── vite.config.js          Lets Vite read JSX inside .js files
 ├── public/                 favicon + _redirects (SPA fallback for Netlify)

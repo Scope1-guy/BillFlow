@@ -22,21 +22,14 @@ const navItems = [
 function Logo() {
   return (
     <span className="logo">
-      <span className="logo-mark" aria-hidden="true">
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#fff"
-          strokeWidth="2.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M7 20V4h7a4 4 0 0 1 0 8H7M7 12h8a4 4 0 0 1 0 8H7" />
-        </svg>
-      </span>
-      <span className="logo-text">BillFlow</span>
+      <img
+        src="/logo.png"
+        alt="DueSora"
+        className="logo-img"
+        width="36"
+        height="36"
+      />
+      <span className="logo-text">DueSora</span>
     </span>
   );
 }

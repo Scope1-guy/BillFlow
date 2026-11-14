@@ -3,7 +3,7 @@ import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 // Google is the only way to sign in. The first time someone signs in with Google,
-// their BillFlow account is created automatically.
+// their DueSora account is created automatically.
 export default function Login() {
   const { session, loading, signInWithGoogle } = useAuth();
   const [error, setError] = useState("");
@@ -26,7 +26,10 @@ export default function Login() {
   return (
     <div className="auth-page">
       <div className="card auth-card">
-        <h1 className="auth-brand">BillFlow</h1>
+        <h1 className="auth-brand auth-brand-logo">
+          <img src="/logo.png" alt="DueSora" width="40" height="40" />
+          DueSora
+        </h1>
         <h2 className="auth-title">Sign in or create your account</h2>
         <p className="muted" style={{ marginBottom: 18 }}>
           Invoices, receipts and payments in one place. Continue with your
@@ -156,7 +159,7 @@ export default function Login() {
 //   return (
 //     <div className="auth-page">
 //       <div className="card auth-card">
-//         <h1 className="auth-brand">BillFlow</h1>
+//         <h1 className="auth-brand">DueSora</h1>
 //         <h2 className="auth-title">
 //           {mode === "login" ? "Log in" : "Create your account"}
 //         </h2>

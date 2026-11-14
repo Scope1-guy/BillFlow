@@ -45,7 +45,7 @@ export default function ResetPassword() {
           Your password has been changed.
         </p>
         <Link to="/" className="btn btn-primary btn-block">
-          Continue to BillFlow
+          Continue to DueSora
         </Link>
       </>
     );
@@ -114,7 +114,7 @@ export default function ResetPassword() {
   return (
     <div className="auth-page">
       <div className="card auth-card">
-        <h1 className="auth-brand">BillFlow</h1>
+        <h1 className="auth-brand">DueSora</h1>
         <h2 className="auth-title">Choose a new password</h2>
         {content}
       </div>

@@ -28,7 +28,7 @@ export default function ForgotPassword() {
   return (
     <div className="auth-page">
       <div className="card auth-card">
-        <h1 className="auth-brand">BillFlow</h1>
+        <h1 className="auth-brand">DueSora</h1>
         <h2 className="auth-title">Reset your password</h2>
 
         {sent ? (
